@@ -28,6 +28,7 @@ pub extern "C" fn crypto_get_secret() -> *const c_void {
 	let boxed_secret = Box::new(secret);
 	return unsafe { Box::into_raw(boxed_secret) as *mut c_void };
 }
+#[no_mangle]
 pub extern "C" fn crypto_get_public(secret_ptr: *mut c_void) -> *const c_void {
 	let mut boxed_secret = unsafe { Box::from_raw(secret_ptr as *mut StaticSecret) };
 
@@ -39,6 +40,7 @@ pub extern "C" fn crypto_get_public(secret_ptr: *mut c_void) -> *const c_void {
 	let boxed_public = Box::from(public);
 	return unsafe { Box::into_raw(boxed_public) as *mut c_void }
 }
+#[no_mangle]
 pub extern "C" fn crypto_get_shared(secret_ptr: *mut c_void, public_ptr: *mut c_void, payload: *mut u8) {
 	let boxed_secret = unsafe { Box::from_raw(secret_ptr as *mut StaticSecret) };
 	let boxed_public = unsafe { Box::from_raw(public_ptr as *mut PublicKey) };
@@ -55,5 +57,7 @@ pub extern "C" fn crypto_get_shared(secret_ptr: *mut c_void, public_ptr: *mut c_
 		}
 	}
 }
+#[no_mangle]
 pub extern "C" fn crypto_drop_secret(secret_ptr: *mut c_void) { let _ = unsafe { Box::from_raw(secret_ptr as *mut StaticSecret) }; }
+#[no_mangle]
 pub extern "C" fn crypto_drop_public(public_ptr: *mut c_void) { let _ = unsafe { Box::from_raw(public_ptr as *mut PublicKey) }; }
