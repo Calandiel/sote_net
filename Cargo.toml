@@ -11,3 +11,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 x25519-dalek = "1.1"
+rand_core = "0.5.1"
