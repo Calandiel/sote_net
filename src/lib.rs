@@ -23,45 +23,49 @@ pub extern "C" fn server_open(password: *const i8) -> bool {
 
 // CRYPTO
 #[no_mangle]
-pub extern "C" fn crypto_get_secret() -> *const c_void {
-	let secret = StaticSecret::new(OsRng);
-	let boxed_secret = Box::new(secret);
-	return Box::into_raw(boxed_secret) as *mut c_void;
+pub extern "C" fn crypto_get_keys(secret: *mut u8, public: *mut u8) {
+	let s = StaticSecret::new(OsRng);
+	let p = PublicKey::from(&s);
+	let s_bytes = s.to_bytes();
+	let p_bytes = p.to_bytes();
+
+	unsafe {
+		for elem in 0..32 {
+			*(secret.offset(elem)) = s_bytes[elem as usize];
+			*(public.offset(elem)) = p_bytes[elem as usize];
+		}
+	}
 }
 #[no_mangle]
-pub extern "C" fn crypto_get_public(secret_ptr: *mut c_void) -> *const c_void {
-	let mut boxed_secret = unsafe { Box::from_raw(secret_ptr as *mut StaticSecret) };
+pub extern "C" fn crypto_get_shared(secret: *mut u8, public: *mut u8, payload: *mut u8) {
+	let mut s_bytes: [u8; 32] = [0; 32];
+	let mut p_bytes: [u8; 32] = [0; 32];
 
-	let secret = *boxed_secret;
-	let public = PublicKey::from(&secret);
-	*boxed_secret = secret;
-	Box::into_raw(boxed_secret); // stop managing the memory
+	unsafe {
+		for elem in 0..32 {
+			s_bytes[elem] = *(secret.offset(elem as isize));
+			p_bytes[elem] = *(public.offset(elem as isize));
+		}
+	}
 
-	let boxed_public = Box::from(public);
-	return Box::into_raw(boxed_public) as *mut c_void;
-}
-#[no_mangle]
-pub extern "C" fn crypto_get_shared(secret_ptr: *mut c_void, public_ptr: *mut c_void, payload: *mut u8) {
-	let mut boxed_secret = unsafe { Box::from_raw(secret_ptr as *mut StaticSecret) };
-	let mut boxed_public = unsafe { Box::from_raw(public_ptr as *mut PublicKey) };
+	let s = StaticSecret::from(s_bytes);
+	let p = PublicKey::from(p_bytes);
 
-	let secret = *boxed_secret;
-	let public = *boxed_public;
-
-	let shared = secret.diffie_hellman(&public);
+	let shared = s.diffie_hellman(&p);
 	let bytes = shared.as_bytes();
 	unsafe {
 		for i in 0..32 {
 			*(payload.offset(i)) = bytes[i as usize];
 		}
 	}
-	*boxed_secret = secret;
-	*boxed_public = public;
-
-	Box::into_raw(boxed_secret);
-	Box::into_raw(boxed_public);
+	/*
+	s_bytes = s.to_bytes();
+	p_bytes = p.to_bytes();
+	unsafe {
+		for elem in 0..32 {
+			*(secret.offset(elem as isize)) = s_bytes[elem];
+			*(public.offset(elem as isize)) = p_bytes[elem];
+		}
+	}
+	*/
 }
-#[no_mangle]
-pub extern "C" fn crypto_drop_secret(secret_ptr: *mut c_void) { let _ = unsafe { Box::from_raw(secret_ptr as *mut StaticSecret) }; }
-#[no_mangle]
-pub extern "C" fn crypto_drop_public(public_ptr: *mut c_void) { let _ = unsafe { Box::from_raw(public_ptr as *mut PublicKey) }; }
