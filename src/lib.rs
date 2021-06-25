@@ -53,7 +53,11 @@ pub extern "C" fn socket_recv_from(
 	let buff = unsafe { std::slice::from_raw_parts_mut(buffer_ptr, buffer_size as usize) };
 	let (number_of_bytes, src_addr) = match socket.recv_from(buff) {
 		Ok(r) => r,
-		Err(_) => return 1
+		Err(_) => {
+			*boxed_socket = socket;
+			Box::into_raw(boxed_socket);
+			return 1;
+		}
 	};
 	unsafe {
 		*packet_size = number_of_bytes as u32;
@@ -66,6 +70,8 @@ pub extern "C" fn socket_recv_from(
 				}
 			},
 			IpAddr::V6(_) => {
+				*boxed_socket = socket;
+				Box::into_raw(boxed_socket);
 				return 2;
 			}
 		};
@@ -83,7 +89,11 @@ pub extern "C" fn socket_send_to(socket_ptr: *mut c_void, ip_a: u8, ip_b: u8, ip
 
 	let buff = unsafe { std::slice::from_raw_parts_mut(buffer_ptr, buffer_size as usize) };
 	match socket.send_to(buff, addr) {
-		Err(_) => return 1,
+		Err(_) => {
+			*boxed_socket = socket;
+			Box::into_raw(boxed_socket);
+			return 1;
+		},
 		_ => {}
 	};
 
@@ -92,7 +102,6 @@ pub extern "C" fn socket_send_to(socket_ptr: *mut c_void, ip_a: u8, ip_b: u8, ip
 	Box::into_raw(boxed_socket);
 	return 0;
 }
-
 
 
 // CRYPTO
