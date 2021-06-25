@@ -2,6 +2,7 @@ use rand_core::OsRng;
 use x25519_dalek::{StaticSecret, PublicKey};
 use std::ffi::c_void;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use std::time::Duration;
 
 // LIBRARY
 #[no_mangle]
@@ -18,12 +19,21 @@ pub extern "C" fn lib_deinitialize() -> bool {
 #[no_mangle]
 pub extern "C" fn socket_open(ip_a: u8, ip_b: u8, ip_c: u8, ip_d: u8, port: u16, target_ptr: *mut *mut c_void) -> i32 {
 	let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(ip_a, ip_b, ip_c, ip_d)), port);
-	let boxed_socket = Box::new(match UdpSocket::bind(addr) {
+	let socket = match UdpSocket::bind(addr) {
 		Ok(s) => s,
 		Err(_) => {
 			return 1;
 		}
-	});
+	};
+	match socket.set_read_timeout(Some(Duration::new(0, 1000000))) {
+		Ok(_) => { },
+		Err(_) => { return 2; }
+	}; // 1 ms
+	match socket.set_write_timeout(Some(Duration::new(0, 3 * 1000000))) {
+		Ok(_) => { },
+		Err(_) => { return 3; }
+	}; // 3 ms
+	let boxed_socket = Box::new(socket);
 
 	let raw_socket = Box::into_raw(boxed_socket);
 	unsafe {
