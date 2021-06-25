@@ -2,7 +2,6 @@ use rand_core::OsRng;
 use x25519_dalek::{StaticSecret, PublicKey};
 use std::ffi::c_void;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
-use std::time::Duration;
 
 // LIBRARY
 #[no_mangle]
@@ -25,14 +24,10 @@ pub extern "C" fn socket_open(ip_a: u8, ip_b: u8, ip_c: u8, ip_d: u8, port: u16,
 			return 1;
 		}
 	};
-	match socket.set_read_timeout(Some(Duration::new(0, 1000000))) {
+	match socket.set_nonblocking(true) {
 		Ok(_) => { },
 		Err(_) => { return 2; }
-	}; // 1 ms
-	match socket.set_write_timeout(Some(Duration::new(0, 3 * 1000000))) {
-		Ok(_) => { },
-		Err(_) => { return 3; }
-	}; // 3 ms
+	};
 	let boxed_socket = Box::new(socket);
 
 	let raw_socket = Box::into_raw(boxed_socket);
@@ -66,19 +61,12 @@ pub extern "C" fn socket_recv_from(
 		match src_addr.ip() {
 			IpAddr::V4(v) => {
 				let p = v.octets();
-				let ptr = &p as *const u8;
 				for elem in 0..4 {
-					*addr.offset(elem) = *ptr.offset(elem);
+					*addr.offset(elem) = p[elem as usize];
 				}
 			},
 			IpAddr::V6(_) => {
 				return 2;
-				// disabled for now
-				//let p = v.octets();
-				//let ptr = &p as *const u8;
-				//for elem in 0..16 {
-				//	*addr.offset(elem) = *ptr.offset(elem);
-				//}
 			}
 		};
 	}
