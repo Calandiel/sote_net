@@ -4,6 +4,7 @@ use std::ffi::c_void;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use sha3::{Digest, Sha3_256};
 
+
 // SOCKET
 #[no_mangle]
 pub extern "C" fn socket_open(ip_a: u8, ip_b: u8, ip_c: u8, ip_d: u8, port: u16, target_ptr: *mut *mut c_void) -> i32 {
@@ -132,6 +133,7 @@ pub extern "C" fn crypto_get_shared(secret: *mut u8, public: *mut u8, payload: *
 		}
 	}
 }
+
 
 // HASH
 #[no_mangle]
