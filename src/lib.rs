@@ -2,6 +2,7 @@ use rand_core::OsRng;
 use x25519_dalek::{StaticSecret, PublicKey};
 use std::ffi::c_void;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
+use sha3::{Digest, Sha3_256};
 
 // LIBRARY
 #[no_mangle]
@@ -141,4 +142,52 @@ pub extern "C" fn crypto_get_shared(secret: *mut u8, public: *mut u8, payload: *
 			*(payload.offset(i)) = bytes[i as usize];
 		}
 	}
+}
+
+// HASH
+#[no_mangle]
+pub extern "C" fn hash_sha3(sha_ptr : *mut *mut c_void) {
+	// create a SHA3-256 object
+	let hasher = Sha3_256::new();
+	// box it
+	let b = Box::new(hasher);
+	// get a pointer
+	let ptr = Box::into_raw(b);
+
+	// write the result
+	unsafe {
+		*sha_ptr = ptr as *mut c_void;
+	}
+}
+
+#[no_mangle]
+pub extern "C" fn hash_digest(sha_ptr : *mut c_void, input_buffer : *const u8, input_buffer_size : u32) {
+	let mut b = unsafe { Box::from_raw(sha_ptr as *mut Sha3_256) };
+	let mut hasher = *b;
+
+	let buffer = unsafe { std::slice::from_raw_parts(input_buffer, input_buffer_size as usize) };
+	hasher.update(buffer);
+
+	*b = hasher;
+	Box::into_raw(b);
+}
+
+#[no_mangle]
+pub extern "C" fn hash_finalize(sha_ptr : *mut c_void, output_buffer : *mut u8, output_buffer_size : u32) -> i32 {
+	if output_buffer_size != 32 {
+		return 1;
+	}
+	
+	let b = unsafe { Box::from_raw(sha_ptr as *mut Sha3_256) };
+	let hasher = *b;
+
+	let result = hasher.finalize();
+
+	for elem in 0..32 {
+		unsafe {
+			*(output_buffer.offset(elem)) = result[elem as usize];
+		}
+	}
+
+	return 0;
 }
