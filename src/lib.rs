@@ -4,17 +4,6 @@ use std::ffi::c_void;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, UdpSocket};
 use sha3::{Digest, Sha3_256};
 
-// LIBRARY
-#[no_mangle]
-pub extern "C" fn lib_initialize() -> bool {
-	true
-}
-
-#[no_mangle]
-pub extern "C" fn lib_deinitialize() -> bool {
-	true
-}
-
 // SOCKET
 #[no_mangle]
 pub extern "C" fn socket_open(ip_a: u8, ip_b: u8, ip_c: u8, ip_d: u8, port: u16, target_ptr: *mut *mut c_void) -> i32 {
