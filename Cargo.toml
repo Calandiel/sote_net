@@ -11,5 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 x25519-dalek = "1.1"
+rand = "0.8.4"
 rand_core = "0.5.1"
 sha3 = "0.9.1"
+aes-gcm-siv = "0.10.1"
